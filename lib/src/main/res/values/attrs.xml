@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
+    <declare-styleable name="DoraMarkView">
 
+        <!-- 标记使用的布局 -->
+        <attr name="dview_mv_layout" format="reference" />
+
+        <!-- 标记使用的图片 -->
+        <attr name="dview_mv_drawable" format="reference" />
+
+        <!-- 标记位置（支持所有 Gravity） -->
+        <attr name="dview_mv_gravity">
+            <flag name="top" value="0x30" />
+            <flag name="bottom" value="0x50" />
+            <flag name="left" value="0x03" />
+            <flag name="right" value="0x05" />
+            <flag name="center" value="0x11" />
+            <flag name="center_horizontal" value="0x01" />
+            <flag name="center_vertical" value="0x10" />
+        </attr>
+
+        <!-- 标记边距 -->
+        <attr name="dview_mv_margin" format="dimension" />
+
+        <!-- 是否显示标记 -->
+        <attr name="dview_mv_visible" format="boolean" />
+    </declare-styleable>
 </resources>
