@@ -8,7 +8,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
-import androidx.annotation.LayoutRes
 import dora.widget.markview.R
 import kotlin.math.roundToInt
 
@@ -28,11 +27,15 @@ class DoraMarkView @JvmOverloads constructor(
         val margin: Int = 8
     )
 
-    private var markDrawable: Drawable? = null
-    private var markView: View? = null
+    data class DrawableMark(
+        val drawable: Drawable,
+        val gravity: Int = Gravity.TOP or Gravity.END,
+        val margin: Int = 8
+    )
+
     private val textMarks = mutableListOf<TextMark>()
-    private var markGravity: Int = Gravity.TOP or Gravity.END
-    private var markMargin: Int = 0
+    private val drawableMarks = mutableListOf<DrawableMark>()
+    private var markView: View? = null
     private var markVisible: Boolean = true
 
     private val tmpRect = Rect()
@@ -49,43 +52,35 @@ class DoraMarkView @JvmOverloads constructor(
         attrs ?: return
         val ta = context.obtainStyledAttributes(attrs, R.styleable.DoraMarkView)
 
-        markDrawable = ta.getDrawable(R.styleable.DoraMarkView_dview_mv_drawable)
+        // 原来的 markDrawable
+        ta.getDrawable(R.styleable.DoraMarkView_dview_mv_drawable)?.let {
+            addDrawableMark(it)
+        }
 
         val layoutId = ta.getResourceId(R.styleable.DoraMarkView_dview_mv_layout, 0)
         if (layoutId != 0) {
             markView = LayoutInflater.from(context).inflate(layoutId, this, false)
         }
 
-        markGravity = ta.getInt(R.styleable.DoraMarkView_dview_mv_gravity, Gravity.TOP or Gravity.END)
-        markMargin = ta.getDimensionPixelSize(R.styleable.DoraMarkView_dview_mv_margin, 0)
         markVisible = ta.getBoolean(R.styleable.DoraMarkView_dview_mv_visible, true)
-
         ta.recycle()
     }
 
-    fun setMarkDrawable(drawable: Drawable?) {
-        markDrawable = drawable
+    /** Drawable 标记相关 */
+    fun addDrawableMark(drawable: Drawable, gravity: Int = Gravity.TOP or Gravity.END, margin: Int = 8) {
+        drawableMarks.add(DrawableMark(drawable, gravity, margin))
         invalidate()
     }
 
+    fun clearDrawableMarks() {
+        drawableMarks.clear()
+        invalidate()
+    }
+
+    /** View 标记 */
     fun setMarkView(view: View?) {
         markView = view
         requestLayout()
-    }
-
-    fun setMarkLayout(@LayoutRes layoutId: Int) {
-        val view = LayoutInflater.from(context).inflate(layoutId, this, false)
-        setMarkView(view)
-    }
-
-    fun setMarkGravity(gravity: Int) {
-        markGravity = gravity
-        invalidate()
-    }
-
-    fun setMarkMargin(margin: Int) {
-        markMargin = margin
-        invalidate()
     }
 
     fun setMarkVisible(visible: Boolean) {
@@ -93,20 +88,9 @@ class DoraMarkView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun addTextMark(
-        text: String,
-        textColor: Int = Color.WHITE,
-        bgColor: Int = Color.RED,
-        textSizeSp: Float = 12f,
-        cornerRadius: Float = 12f,
-        paddingH: Int = 12,
-        paddingV: Int = 6,
-        gravity: Int = Gravity.TOP or Gravity.END,
-        margin: Int = 8
-    ) {
-        textMarks.add(
-            TextMark(text, textColor, bgColor, textSizeSp, cornerRadius, paddingH, paddingV, gravity, margin)
-        )
+    /** Text 标记 */
+    fun addTextMark(mark: TextMark) {
+        textMarks.add(mark)
         invalidate()
     }
 
@@ -119,29 +103,29 @@ class DoraMarkView @JvmOverloads constructor(
         super.dispatchDraw(canvas)
         if (!markVisible) return
 
-        // Drawable
-        markDrawable?.let { drawable ->
+        // 绘制 Drawable 标记
+        drawableMarks.forEach { mark ->
             val rect = Rect()
             Gravity.apply(
-                markGravity,
-                drawable.intrinsicWidth,
-                drawable.intrinsicHeight,
+                mark.gravity,
+                mark.drawable.intrinsicWidth,
+                mark.drawable.intrinsicHeight,
                 Rect(
-                    paddingLeft + markMargin,
-                    paddingTop + markMargin,
-                    width - paddingRight - markMargin,
-                    height - paddingBottom - markMargin
+                    paddingLeft + mark.margin,
+                    paddingTop + mark.margin,
+                    width - paddingRight - mark.margin,
+                    height - paddingBottom - mark.margin
                 ),
                 rect
             )
-            drawable.bounds = rect
-            drawable.draw(canvas)
+            mark.drawable.bounds = rect
+            mark.drawable.draw(canvas)
         }
 
-        // View
+        // 绘制 View
         markView?.let { view ->
-            val contentWidth = width - paddingLeft - paddingRight - markMargin * 2
-            val contentHeight = height - paddingTop - paddingBottom - markMargin * 2
+            val contentWidth = width - paddingLeft - paddingRight
+            val contentHeight = height - paddingTop - paddingBottom
 
             measureChild(
                 view,
@@ -151,14 +135,14 @@ class DoraMarkView @JvmOverloads constructor(
 
             val markRect = Rect()
             Gravity.apply(
-                markGravity,
+                Gravity.TOP or Gravity.END,
                 view.measuredWidth,
                 view.measuredHeight,
                 Rect(
-                    paddingLeft + markMargin,
-                    paddingTop + markMargin,
-                    width - paddingRight - markMargin,
-                    height - paddingBottom - markMargin
+                    paddingLeft,
+                    paddingTop,
+                    width - paddingRight,
+                    height - paddingBottom
                 ),
                 markRect
             )
@@ -170,7 +154,7 @@ class DoraMarkView @JvmOverloads constructor(
             canvas.restore()
         }
 
-        // Text marks
+        // 绘制 Text 标记
         textMarks.forEach { mark ->
             textPaint.color = mark.textColor
             textPaint.textSize = mark.textSizeSp * resources.displayMetrics.scaledDensity
@@ -183,7 +167,6 @@ class DoraMarkView @JvmOverloads constructor(
             val bgWidth = (textWidth + mark.paddingH * 2).roundToInt()
             val bgHeight = (textHeight + mark.paddingV * 2).roundToInt()
 
-            tmpRect.set(0, 0, bgWidth, bgHeight)
             val parentRect = Rect(
                 paddingLeft + mark.margin,
                 paddingTop + mark.margin,
