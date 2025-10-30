@@ -14,7 +14,7 @@ allprojects {
 }
 // 添加以下代码到app模块的build.gradle
 dependencies {
-    implementation 'com.github.dora4:dview-mark-view:1.1'
+    implementation 'com.github.dora4:dview-mark-view:1.2'
 }
 ```
 
@@ -26,7 +26,7 @@ binding.doraMarkView.addTextMark("热门", bgColor = 0xFFE53935.toInt(), gravity
 binding.doraMarkView.addTextMark("限时", bgColor = 0xFFF57C00.toInt(), gravity = Gravity.BOTTOM or Gravity.END)
 
 // 添加 Drawable mark
-binding.doraMarkView.setMarkDrawable(ContextCompat.getDrawable(this, R.drawable.ic_fire))
+binding.doraMarkView.addDrawableMark(ContextCompat.getDrawable(this, R.drawable.ic_fire))
 
 // 添加 View mark
 val hotLabel = LayoutInflater.from(this).inflate(R.layout.view_hot_label, null)
